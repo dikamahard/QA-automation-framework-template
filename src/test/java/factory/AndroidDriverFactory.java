@@ -115,4 +115,40 @@ public class AndroidDriverFactory extends BaseTest {
             );
         }
     }
+
+
+    public static AndroidDriver createAndroidDriverReinstall(MobileDevice device, MobileApp defaultApp) {
+        try {
+            DesiredCapabilities capabilities = new DesiredCapabilities();
+
+            capabilities.setCapability("platformName", "Android");
+            capabilities.setCapability("appium:automationName", "UiAutomator2");
+
+            capabilities.setCapability("appium:deviceName", device.getDeviceName());
+            capabilities.setCapability("appium:udid", device.getUdid());
+            //capabilities.setCapability("appium:platformVersion", device.getPlatformVersion());
+
+            capabilities.setCapability("appium:appPackage", defaultApp.getAppPkg());
+            capabilities.setCapability("appium:appActivity", defaultApp.getAppAct());
+
+            // command for reinstall every test run
+            capabilities.setCapability("appium:noReset", false);
+            capabilities.setCapability("appium:fullReset", false);
+            capabilities.setCapability("appium:newCommandTimeout", 1800);
+
+            // Important for multiple Android drivers
+            capabilities.setCapability("appium:systemPort", device.getSystemPort());
+
+            return new AndroidDriver(
+                    new URL(device.getAppiumServerUrl()),
+                    capabilities
+            );
+
+        } catch (Exception e) {
+            throw new RuntimeException(
+                    "Failed to create AndroidDriver for device: " + device.name(),
+                    e
+            );
+        }
+    }
 }
