@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="AllSuite" parallel="false" thread-count="1">
+    <listeners>
+        <listener class-name="helper.EarlyTLSInit"/>
+        <!--	<listener class-name="AppiumTest.mavenquickstart.TestUtils.Listeners"></listener>-->
+    </listeners>
+
+    <test name="Demo Test">
+<!--        <classes>-->
+<!--            <class name="appiumTest.promo.PromoPerProductPositiveTest">-->
+<!--                <methods>-->
+<!--                    <include name="promoPerProductUnlimitedFundTest" />-->
+<!--                </methods>-->
+<!--            </class>-->
+
+<!--        </classes>-->
+    </test>
+
+    <test name="Regression Test">
+        <classes>
+<!--            <class name="appiumTest.RegisterTest">-->
+<!--                <methods>-->
+<!--                    <exclude name="registerWithValidDataTest" />-->
+<!--                </methods>-->
+<!--            </class>-->
+        </classes>
+    </test>
+
+</suite> <!-- Suite -->

@@ -36,3 +36,8 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+# user define
+.env
+testcase/generated
+/testcase/generated

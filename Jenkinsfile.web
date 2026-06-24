@@ -1,0 +1,383 @@
+@Library(['cicd-utils']) _
+
+def testExitCode = 0
+def testFailed = false
+pipeline {
+    agent {
+        dockerfile {
+          filename 'Dockerfile'
+          args '-u root -v /home/qa/qa-team:/root/qa --net host --privileged -v /dev/bus/usb:/dev/bus/usb'
+          label 'ubuntu-adb'
+        }
+    }
+
+    // Define variables at the pipeline level
+    environment {
+        // Configurable Variable - Project Specific
+        // TODO: Change this according your project
+        PROJECT_NAME = "acquiring-dashboard-fe-automation-test"
+        PROJECT_NAME_UNDERSCORE = "acquiring_dashboard_fe_automation_test"
+        GITLAB_PROJECT_ID = "1446"
+        FLAG_USE_SONAR_QUBE = true
+        FLAG_USE_INTEGRATION_TEST = false
+        FLAG_UNIT_TEST_RANDOM_SEED = false
+        FLAG_DEPLOYMENT = false
+        TEAM_LEADER_GITLAB_USER_ID = 12
+        // TODO: Change this according your project
+        EMAIL_DEVELOPER1 = "mahbub.alfarisi@primavista-solusi.com"
+        EMAIL_DEVELOPER2 = "dwiki.prakasa@primavista-solusi.com"
+        EMAIL_TEAM_LEADER = "ari.abdulrahman@primavista-solusi.com"
+        EMAIL_QA = "rizky.mahardika@primavista-solusi.com"
+        EMAIL_CC = "cc:adam.mubarok@primavista-solusi.com"
+        EMAIL_FAILED_RECEIVER = "${EMAIL_DEVELOPER1},${EMAIL_DEVELOPER2},${EMAIL_QA}, ${EMAIL_CC}, ${EMAIL_TEAM_LEADER}"
+        DIR_PROJECT_GOOGLE_SERVICE = "N/A"
+        DIR_PROJECT_ENV_DEV = "N/A"
+        DIR_PROJECT_ENV_STAGING = "N/A"
+        DIR_PROJECT_ENV_PROD = "N/A"
+        BUILD_TIMESTAMP = "${new Date().format("yyyy-MM-dd HH:mm:ss")}"
+
+        // Variable test status
+        TEST_EXIT_CODE = "0"
+        TEST_FAILED = "false"
+        FAILED_STAGE = ""
+        TEST_IGNORE = "false"
+
+        // Variable to be assigned
+        ACTIVE_STAGE = ""
+        IS_MR = false
+        IS_DEVELOP = false
+        IS_RELEASE_HOTFIX = false
+        IS_MASTER = false
+        GITLAB_TOKEN = ""
+        NEXUS_CREDENTIAL = ""
+        SONARQUBE_TOKEN = ""
+
+        NEXUS_HREF_URL = ""
+        NEXUS_DIRECTORY = ""
+        FIREBASE_ID_DEV = ""
+        FIREBASE_ID_STAGING = ""
+        FIREBASE_ID_PROD = ""
+        COMMIT_ID = ""
+        VERSION = ""
+        VERSION_NAME = ""
+        VERSION_NUMBER = ""
+        TAG_NAME = ""
+        EMAIL_SUBJECT = ""
+        EMAIL_RECEIVER = "${EMAIL_DEVELOPER1},${EMAIL_DEVELOPER2},${EMAIL_QA}, ${EMAIL_CC}, ${EMAIL_TEAM_LEADER}"
+        BUILD_URL = ""
+        BUILD_TRIGGER = ""
+        BUILD_DURATION = ""
+        IS_FEATURE = true
+    }
+
+    options {
+        gitLabConnection('gitserver.pvs.local')
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                script {
+                    sh 'echo Checkout from repository...'
+                    ACTIVE_STAGE = "Checkout"
+
+                    sh "echo Branch Name : ${env.BRANCH_NAME}"
+                    sh "echo Change Id : ${env.CHANGE_ID}"
+                    sh "echo Change Target : ${env.CHANGE_TARGET}"
+                    sh "echo Change Author : ${env.CHANGE_AUTHOR}"
+                    sh "echo Change Author Display Name : ${env.CHANGE_AUTHOR_DISPLAY_NAME}"
+                    sh "echo Change Author Email : ${env.CHANGE_AUTHOR_EMAIL}"
+                    sh "echo Change Source Branch : ${env.CHANGE_BRANCH}"
+                    sh "echo Change Title : ${env.CHANGE_TITLE}"
+                    sh "echo Change Description : ${env.CHANGE_DESCRIPTION}"
+
+                    sh "git config --global --add safe.directory '*'"
+                    sh 'git branch -r'
+                    sh "git checkout origin/${env.BRANCH_NAME}"
+
+                    echo 'Assign Variable...'
+                    def flagVars = utils.assignVariables(env.BRANCH_NAME, env.CHANGE_BRANCH, env.CHANGE_TARGET)
+                    IS_MR = flagVars['isMr']
+                    IS_DEVELOP = flagVars['isDevelop']
+                    IS_RELEASE_HOTFIX = flagVars['isReleaseHotfix']
+                    IS_MASTER = flagVars['isMaster']
+                    BUILD_TRIGGER = flagVars['buildTrigger']
+
+                    def mrAllowed = flagVars['mrAllowed']
+                    if (!mrAllowed?.toBoolean()){
+                        error "Forcing the pipeline to fail: ${BUILD_TRIGGER}"
+                    }
+
+                    sh 'printenv'
+                }
+            }
+        }
+        stage ('Get Credential and Env Files'){
+            when {
+                expression{
+                    IS_MR || IS_DEVELOP || IS_RELEASE_HOTFIX || IS_MASTER
+                }
+            }
+            steps {
+                script{
+                    sh 'echo Get Credential and Env Files...'
+                    ACTIVE_STAGE = "Get Credential and Env Files"
+
+                    echo "copy .netrc"
+                    sh "cp /root/qa/.netrc /root/"
+                    sh "chmod 600 /root/.netrc"
+
+                    echo "copy env"
+                    sh "mkdir -p env/"
+                    sh "cp /root/qa/.env env/"
+                    sh "cp /root/qa/.env ./.env"
+
+                    echo "copy .jks"
+                    sh "cp /root/qa/*.jks /root/"
+                    sh "chmod 600 /root/*.jks"
+
+                    echo "copy key.properties"
+                    sh "cp /root/qa/key.properties /root/"
+                    sh "chmod 600 /root/key.properties"
+                }
+            }
+        }
+        stage('Parse Env File') {
+            when {
+                expression{
+                    IS_MR || IS_DEVELOP || IS_RELEASE_HOTFIX || IS_MASTER
+                }
+            }
+            steps {
+                script {
+                    sh 'echo Parse Env File...'
+                    ACTIVE_STAGE = "Parse Env File"
+
+                    def envVariables = utils.readEnvFile('env/.env')
+
+                    NEXUS_CREDENTIAL = envVariables['NEXUS_CREDENTIAL']
+                    echo "NEXUS_CREDENTIAL: ${NEXUS_CREDENTIAL}"
+
+                    SONARQUBE_TOKEN = envVariables['SONARQUBE_TOKEN']
+                    echo "SONARQUBE_TOKEN: ${SONARQUBE_TOKEN}"
+
+                    GITLAB_TOKEN = envVariables['GITLAB_TOKEN']
+                    echo "GITLAB_TOKEN: ${GITLAB_TOKEN}"
+                }
+            }
+        }
+        stage('Extracting Version'){
+            when {
+                expression{
+                    IS_MR || IS_DEVELOP || IS_RELEASE_HOTFIX || IS_MASTER
+                }
+            }
+            steps{
+                script{
+                    sh 'echo Extracting Version...'
+                    ACTIVE_STAGE = "Extracting Version"
+
+                    COMMIT_ID = "N/A"
+                    VERSION = "N/A"
+                    VERSION_NAME = "1.0.12"
+                    VERSION_NUMBER = "2.0.15"
+                    // TODO: Change this according your project
+                    TAG_NAME = "Project Acquiring"
+                    NEXUS_DIRECTORY = "N/A"
+                    NEXUS_HREF_URL = "N/A"
+                    // TODO: Change this according your project
+                    EMAIL_SUBJECT = "[QA] Acquiring Dashboard FE Automation Test"
+                    BUILD_URL = "N/A"
+                    // EMAIL_RECEIVER = "N/A"
+
+                    env.PROJECT_NAME = PROJECT_NAME
+                    echo "ENV VAR - PROJECT_NAME: ${env.PROJECT_NAME}"
+
+                    env.VERSION_NAME = VERSION_NAME
+                    echo "ENV VAR - VERSION_NAME: ${env.VERSION_NAME}"
+
+                    env.VERSION_NUMBER = VERSION_NUMBER
+                    echo "ENV VAR - VERSION_NUMBER: ${env.VERSION_NUMBER}"
+
+                    env.TAG_NAME = TAG_NAME
+                    echo "ENV VAR - TAG_NAME: ${env.TAG_NAME}"
+
+                    env.NEXUS_URL = NEXUS_HREF_URL
+                    echo "ENV VAR - NEXUS_URL: ${env.NEXUS_URL}"
+                }
+            }
+        }
+
+        stage('Checking Appium'){
+            when {
+                expression {
+                    IS_MR || IS_DEVELOP || IS_RELEASE_HOTFIX || IS_MASTER || IS_FEATURE
+                }
+            }
+            steps{
+                script{
+                    sh 'echo Checking...'
+                    sh 'appium driver doctor uiautomator2'
+                    sh 'mvn -v'
+                }
+            }
+       }
+
+       stage('Running Test: Bank Jakarta Setup'){
+                  when {
+                      expression {
+                          IS_MR || IS_DEVELOP || IS_RELEASE_HOTFIX || IS_MASTER || IS_FEATURE
+                      }
+                  }
+                  steps{
+                      script{
+                          sh 'echo Running Test...'
+                          ACTIVE_STAGE = "Running Test"
+                          //sh 'appium &'
+                          sh 'sleep 3'
+
+                          // TODO: Change this according your project
+                          def exitCode = sh(script: 'mvn test -Dtestnames="Bank Jakarta Setup Test"', returnStatus: true)
+                          env.TEST_EXIT_CODE = "${exitCode}"
+
+                          if (exitCode != 0) {
+                              env.TEST_FAILED = "true"
+                              env.FAILED_STAGE = "Running Test"
+                              echo "Running Test failed with exit code: ${exitCode }"
+
+                              catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                                error("Running Test failed with exit code: ${exitCode}")
+                              }
+
+                              if (env.TEST_IGNORE == "true") {
+                                currentBuild.result = 'SUCCESS'
+                              }else {
+                                currentBuild.result = 'FAILURE'
+                              }
+
+                          }
+                      }
+                  }
+             }
+
+
+       stage('Upload Binary to Nexus') {
+                   when {
+                       expression {
+                           IS_MR || IS_DEVELOP || IS_RELEASE_HOTFIX || IS_MASTER
+                       }
+                   }
+                   steps {
+                       script {
+                           sh 'echo Upload Binary to Nexus...'
+                           sh 'pwd'
+                           NEXUS_CREDENTIAL="ZmFkaGlsLmZhdGhpOlRoaTExQ2hhbjA5QA=="
+                           def AUTHORIZATION_HEADER = "Authorization: Basic ${NEXUS_CREDENTIAL}"
+                           def CURRENT_DIR = sh(script: 'pwd', returnStdout: true).trim()
+                           // TODO: Change this according your project
+                           def FILE_NAME = 'testcase/generated/Test_Script_Acquiring_Web.xlsx'
+                           def FILE_PATH = "${CURRENT_DIR}/${FILE_NAME}"
+
+                           echo "Uploading Binary to Nexus..."
+
+                           def curlCommand = """
+                               curl -f -X 'POST' \\
+                               'https://nexus.pvs.local/service/rest/v1/components?repository=pvs-raw-hosted-snapshot' \\
+                               -H 'accept: application/json' \\
+                               -H 'Content-Type: multipart/form-data' \\
+                               -H '${AUTHORIZATION_HEADER}' \\
+                               -F 'raw.directory=web-team/${PROJECT_NAME_UNDERSCORE}/v-0/selenium-report' \\
+                               -F 'raw.asset1=@${FILE_PATH};type=application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' \\
+                               -F 'raw.asset1.filename=${FILE_NAME}'
+                           """
+
+                           def result = sh(script: curlCommand, returnStatus: true)
+                           if (result != 0) {
+                                if (!env.FAILED_STAGE?.trim()) {
+                                    env.FAILED_STAGE = "Upload Binary to Nexus"
+                                }
+                                error "Error: Curl command failed"
+                           }
+                       }
+                   }
+               }
+
+       stage('Notify Users') {
+            when {
+                expression {
+                    (IS_MR || IS_DEVELOP || IS_RELEASE_HOTFIX || IS_MASTER) && env.TEST_FAILED != "true"
+                }
+            }
+            steps {
+                script {
+                    sh 'echo Notify Users...'
+                    ACTIVE_STAGE = "Notify Users"
+
+                    BUILD_DURATION = currentBuild.durationString
+
+                    def recipients = EMAIL_RECEIVER
+
+                    if (IS_RELEASE_HOTFIX) {
+                        recipients = "${EMAIL_RECEIVER},\$DEFAULT_RECIPIENTS"
+                    }
+
+                    if(TEST_EXIT_CODE!=0){
+                    emailext(
+                        subject: "${EMAIL_SUBJECT}",
+                        mimeType: 'text/html',
+                        body: '''${SCRIPT, template="qa-team-failed-groovy-html.template"}''',
+                        from: "${constantsWrapper.getEmailSender()}",
+                        to: recipients
+                    )
+                    }else{
+                    emailext(
+                        subject: "${EMAIL_SUBJECT}",
+                        mimeType: 'text/html',
+                        body: '''${SCRIPT, template="qa-team-groovy-html.template"}''',
+                        from: "${constantsWrapper.getEmailSender()}",
+                        to: recipients
+                    )
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'One way or another, I have finished'
+        }
+        changed {
+            echo 'Things were different before...'
+        }
+        success {
+            echo 'I succeeded!'
+        }
+        unstable {
+            echo 'I am unstable :/'
+        }
+        failure {
+            echo 'I failed :('
+
+            script{
+                BUILD_DURATION = currentBuild.durationString
+
+                def recipients = EMAIL_FAILED_RECEIVER
+                def stageName = env.FAILED_STAGE?.trim() ? env.FAILED_STAGE : ACTIVE_STAGE
+
+                emailext(
+                subject: "[QA] Build Failed Notification: ${PROJECT_NAME} in ${stageName}",
+                mimeType: 'text/html',
+                body: '''${SCRIPT, template="qa-team-groovy-html.template"}''',
+                from: "${constantsWrapper.getEmailSender()}",
+                to: recipients
+            )
+            }
+            
+        }
+        cleanup{
+            echo 'Clean up our workspace'
+            deleteDir() /* clean up our workspace */
+        }
+    }
+}

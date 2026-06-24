@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.example</groupId>
+    <groupId>com.dikamahard</groupId>
     <artifactId>base-automation-template</artifactId>
     <version>1.0-SNAPSHOT</version>
 
@@ -13,5 +13,116 @@
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
+
+    <profiles>
+        <!-- Local Appium execution -->
+        <!-- Regression Profile -->
+        <profile>
+            <id>Regression</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>3.3.0</version>
+                        <configuration>
+                            <suiteXmlFiles>
+                                <suiteXmlFile>testNGSuites/testng.xml</suiteXmlFile>
+                            </suiteXmlFiles>
+                            <argLine>
+                                -Djava.security.properties=${project.basedir}/legacy-tls.security
+                                -Djdk.tls.client.protocols=TLSv1,TLSv1.1,TLSv1.2
+                            </argLine>
+
+                            <properties>
+                                <!-- Let TestNG use -testnames via Maven property, ex:mvn test -Dtestnames="Backoffice Test" -->
+                                <property>
+                                    <name>testnames</name>
+                                    <!--suppress UnresolvedMavenProperty -->
+                                    <value>${testnames}</value>
+                                </property>
+                            </properties>
+
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+    <dependencies>
+        <!-- Appium Java Client -->
+        <!-- https://mvnrepository.com/artifact/io.appium/java-client -->
+        <dependency>
+            <groupId>io.appium</groupId>
+            <artifactId>java-client</artifactId>
+            <!--            <version>9.3.0</version>-->
+            <version>10.0.0</version>
+
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/org.testng/testng -->
+        <dependency>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <version>7.10.2</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/org.seleniumhq.selenium/selenium-java -->
+        <dependency>
+            <groupId>org.seleniumhq.selenium</groupId>
+            <artifactId>selenium-java</artifactId>
+            <!--            <version>4.26.0</version>-->
+            <version>4.35.0</version>
+
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>5.4.0</version> <!-- Ensure this is the latest version -->
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+            <version>2.24.3</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.microsoft.sqlserver</groupId>
+            <artifactId>mssql-jdbc</artifactId>
+            <version>12.6.1.jre11</version> <!-- use jre11 artifact for Java 11+ (incl. Java 17) -->
+        </dependency>
+
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>2.20.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.20.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>1.22.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.cdimascio</groupId>
+            <artifactId>dotenv-java</artifactId>
+            <version>3.2.0</version>
+        </dependency>
+
+    </dependencies>
 
 </project>

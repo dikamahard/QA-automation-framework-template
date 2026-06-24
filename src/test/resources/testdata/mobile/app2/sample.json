@@ -1,0 +1,12 @@
+{
+  "invalidPin": {
+    "pin": "0000"
+  },
+  "invalidToken": {
+    "deviceToken": "X123X",
+    "pin": "3046"
+  },
+  "usedToken": {
+    "deviceToken": "GE9IBSW9"
+  }
+}

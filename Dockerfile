@@ -1,0 +1,1 @@
+FROM nexus.pvs.local:18079/appium-sdk:2.15.0
