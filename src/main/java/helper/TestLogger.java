@@ -110,4 +110,9 @@ public class TestLogger {
         printLogMessage("LOG", msg);
     }
 
+    public static void printError(String itemToLog, String value) {
+        String msg = String.format("%s: %s", itemToLog, value);
+        printLogMessage("ERROR", msg);
+    }
+
 }

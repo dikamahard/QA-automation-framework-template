@@ -23,6 +23,14 @@ public class TestDataLoader {
         return node.path(key).asText();
     }
 
+    public static int getTestDataInt(JsonNode node, String key) {
+        return node.path(key).asInt();
+    }
+
+    public static boolean getTestDataBool(JsonNode node, String key) {
+        return node.path(key).asBoolean();
+    }
+
     public static String[] getTestDataArray(JsonNode node, String key) {
         JsonNode arrayNode = node.path(key);
 
@@ -68,5 +76,9 @@ public class TestDataLoader {
         } catch (Exception e) {
             throw new RuntimeException("Failed to resolve resource: " + classpathPath, e);
         }
+    }
+
+    public static boolean isEnabled(JsonNode node) {
+        return Boolean.parseBoolean(getTestData(node, "enabled"));
     }
 }

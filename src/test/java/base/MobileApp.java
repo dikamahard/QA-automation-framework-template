@@ -10,6 +10,11 @@ public enum MobileApp {
     GALILEO(
             BaseTest.APP_PKG_GALILEO,
             BaseTest.APP_ACT_GALILEO
+    ),
+
+    MONEI(
+            BaseTest.APP_PKG_MONEI,
+            BaseTest.APP_ACT_MONEI
     );
 
     private final String appPkg;

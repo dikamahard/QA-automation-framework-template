@@ -1,111 +1,91 @@
 package base;
 
+import factory.AndroidDriverFactory;
+import factory.WebDriverFactory;
 import helper.FileTransferUtils;
 import helper.TestLogger;
 import io.appium.java_client.android.AndroidDriver;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.chrome.ChromeOptions;
-import org.openqa.selenium.remote.DesiredCapabilities;
-import org.testng.annotations.*;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeSuite;
 
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
+
+/*
+ * TODO:THIS IS AN EXPERIMENTAL SETUP FOR LAZY DRIVER INITIATION
+ * TODO:NEED TO SEE HOW IT WORKS BEFORE IMPLEMENTING IT TO ALL TEST
+ * */
 public class BaseHybridTest extends BaseTest{
-    protected AndroidDriver driverAndroid;
+    //protected AndroidDriver driverAndroid;
+    protected final Map<MobileDevice, AndroidDriver> driverAndroids = new EnumMap<>(MobileDevice.class);
     protected WebDriver driverWeb; // selenium driver for backoffice
 
     @BeforeSuite
-    public void copyTestCaseTemplateForTestResult() {
-        System.out.println("[Before Suite] Copy testcase template");
+    public void copyQADocsTemplate() {
+        System.out.println("[Before Suite] Copy QA Docs template");
         FileTransferUtils.copyFile(SRC_TC_DIR, RESULT_TC_DIR);
+        FileTransferUtils.copyFile(SRC_ISSUE_DIR, RESULT_ISSUE_DIR);
     }
 
-    @BeforeClass(alwaysRun = true)
-    public void backofficeAndMobileSetup() throws MalformedURLException {
-        TestLogger.startFunc();
+    //TODO: THIS GONNA BE LAZY CALL, NO MORE BEFORE METHOD, CALL WHEN A DRIVER IS NEEDED
+    public void androidDriverSetup(MobileDevice device, MobileApp defaultApp) {
+        if (!driverAndroids.containsKey(device)) {
+            TestLogger.printLog("MOBILE", "Creating AndroidDriver for " + device.name());
 
-        // Detect environment
-        boolean isLinux    = System.getProperty("os.name").toLowerCase().contains("linux");
-        boolean hasDisplay = System.getenv("DISPLAY") != null || System.getenv("WAYLAND_DISPLAY") != null;
-        boolean isRoot     = "root".equals(System.getProperty("user.name"));
-
-
-        // --- Selenium (desktop web) ---
-        ChromeOptions options = new ChromeOptions();
-        if (isLinux && !hasDisplay) {
-            // Headless on Linux without a display (typical Jenkins)
-            options.addArguments(
-                    "--headless=new",
-                    "--disable-gpu",
-                    "--disable-dev-shm-usage",
-                    "--window-size=1920,1080"
-            );
-            if (isRoot) {
-                options.addArguments("--no-sandbox");
-            }
-            System.out.println("[Web] Chrome mode: HEADLESS");
-        } else {
-            // Your original UI flags
-            options.addArguments("--start-maximized");
-            options.addArguments("force-device-scale-factor=0.3");
-            options.addArguments("high-dpi-support=0.5");
-            System.out.println("[Web] Chrome mode: UI");
+            AndroidDriver driver = AndroidDriverFactory.createAndroidDriver(device, defaultApp);
+            driverAndroids.put(device, driver);
         }
-
-        driverWeb = new ChromeDriver(options);
-
-
-        // Setup Mobile
-        DesiredCapabilities capabilities = new DesiredCapabilities();
-        URL url = new URL(dotenv.get("URL_APPIUM_SERVER"));
-
-        capabilities.setCapability("appium:deviceName", DEVICE_TAB);
-        capabilities.setCapability("appium:platformVersion", PLATFORM_VERSION_TAB);
-
-        capabilities.setCapability("appium:automationName", "UiAutomator2");
-        capabilities.setCapability("platformName", "Android");
-        capabilities.setCapability("appium:appPackage", APP_PKG_POS);
-        capabilities.setCapability("appium:appActivity", APP_ACT_POS);
-        // command no reinstall every test run
-        capabilities.setCapability("appium:noReset", true);
-        capabilities.setCapability("appium:fullReset", false);
-        // timeout driver mobile when no command is send to mobile (need this when web process is taking so long)
-        capabilities.setCapability("appium:newCommandTimeout", 1800); // seconds
-
-
-        driverAndroid = new AndroidDriver(url, capabilities);
-        TestLogger.endFunc();
     }
 
-    @BeforeMethod(alwaysRun = true)
-    public void activateApp() {
+    public void webDriverSetup() {
+        TestLogger.printLog("WEB", "Creating Selenium WebDriver");
+
+        driverWeb =  WebDriverFactory.createChromeDriver();
+    }
+
+
+    //TODO: THIS GONNA BE LAZY CALL, NO MORE BEFORE METHOD, CALL WHEN AN APP IS NEEDED TO OPEN
+    //@BeforeMethod(alwaysRun = true)
+    public void activateApp(AndroidDriver driverAndroid, String appPkg) {
         TestLogger.startFunc();
-        driverAndroid.activateApp(APP_PKG_POS);
+        if (driverAndroid != null) {
+            driverAndroid.activateApp(appPkg);
+        }else {
+            throw new RuntimeException("driverAndroid is null !!!");
+        }
         TestLogger.endFunc();
     }
 
     @AfterMethod(alwaysRun = true)
     public void cleanUpBetweenTestsAndClearWebCookies() {
-        // kill the app but keep the session alive
         TestLogger.startFunc();
-        if (driverAndroid != null) {
-            try {
-                driverAndroid.terminateApp(APP_PKG_POS);
-            } catch (Exception ignored) {
-                // ignore
+        // kill the app (web, mobile) but keep the session alive
+
+        // terminate all known test app from any active android driver, even if the app is never open
+        for (MobileDevice device: MobileDevice.values()) {
+            AndroidDriver driver = driverAndroids.get(device);
+
+            if (driver == null) {
+                continue;
+            }
+
+            for (MobileApp app : MobileApp.values()) {
+                driver.terminateApp(app.getAppPkg());
             }
         }
 
         // clear browser cookies
-        driverWeb.manage().deleteAllCookies();
+        if(driverWeb != null) {
+            driverWeb.manage().deleteAllCookies();
+        }
         TestLogger.endFunc();
     }
 
-    @AfterClass
+    @AfterClass(alwaysRun = true)
     public void exitDriver() {
         TestLogger.startFunc();
         if (driverWeb != null) {
@@ -115,49 +95,49 @@ public class BaseHybridTest extends BaseTest{
             driverWeb = null;
         }
 
-        if (driverAndroid != null) {
-            try { driverAndroid.terminateApp(APP_PKG_POS);
-            } catch (Exception ignored) {
+        for (MobileDevice device: MobileDevice.values()) {
+            AndroidDriver driverAndroid = driverAndroids.get(device);
 
+            if (driverAndroid == null) {
+                continue;
             }
 
             try {
                 driverAndroid.quit();
             } catch (Exception ignored) {}
-            driverAndroid = null;
         }
+        driverAndroids.clear();
+
         TestLogger.endFunc();
     }
 
 
     // method
-    public void hardResetAndRelaunch(AndroidDriver driver) {
+    public void hardResetAndRelaunch(AndroidDriver driver, String appPkg) {
         TestLogger.startFunc();
-
-        String appId = APP_PKG_POS;
 
         // 1) Stop app if running (avoids “half-alive” state)
         try {
-            System.out.println("[APP] Terminating app : " + appId);
-            driver.terminateApp(appId);
+            System.out.println("[APP] Terminating app : " + appPkg);
+            driver.terminateApp(appPkg);
         } catch (Exception ignored) {
 
         }
 
         // 2) Clear data
         try {
-            System.out.println("[APP] Clearing app data : " + appId);
-            driver.executeScript("mobile: clearApp", Map.of("appId", appId));
+            System.out.println("[APP] Clearing app data : " + appPkg);
+            driver.executeScript("mobile: clearApp", Map.of("appId", appPkg));
         } catch (Exception e) {
             // fallback: adb pm clear
-            System.out.println("[APP] Fail to clear app data : " + appId);
+            System.out.println("[APP] Fail to clear app data : " + appPkg);
             driver.executeScript("mobile: shell",
-                    Map.of("command", "pm", "args", List.of("clear", appId)));
+                    Map.of("command", "pm", "args", List.of("clear", appPkg)));
         }
 
         // 3) Launch fresh
-        System.out.println("[APP] Launch app : " + appId);
-        driver.executeScript("mobile: activateApp", Map.of("appId", appId));
+        System.out.println("[APP] Launch app : " + appPkg);
+        driver.executeScript("mobile: activateApp", Map.of("appId", appPkg));
 
         TestLogger.endFunc();
     }

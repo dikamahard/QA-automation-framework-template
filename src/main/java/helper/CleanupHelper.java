@@ -14,6 +14,9 @@ public class CleanupHelper {
             cleanupAction.run();
         }catch (Exception e) {
             TestLogger.printCleanUpWarning(cleanupName, e.getMessage());
+            if (e.getCause() != null) {
+                TestLogger.printCleanUpWarning(cleanupName + " Cause", e.getCause().getMessage());
+            }
         }
 
     }

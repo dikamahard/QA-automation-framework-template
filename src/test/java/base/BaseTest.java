@@ -48,10 +48,14 @@ public abstract class BaseTest {
     public static final String hostGmail = "https://mail.google.com/";
     // =====================================
 
-    // === Test Case File ===
-    public static final String TEST_CASE_FILE = "sample.xlsx";
+    // === QA Docs File ===
+    public static final String TEST_CASE_FILE = "Test_Scenario_Galileo_Mobile_Auto_V2.xlsx";
+    public static final String ISSUE_LOG_FILE = "Issue_Log_Galileo_Mobile_Auto_V2.xlsx";
+
     public static final String SRC_TC_DIR = System.getProperty("user.dir") + File.separator + "testcase" + File.separator + "template" + File.separator + TEST_CASE_FILE;
     public static final String RESULT_TC_DIR = System.getProperty("user.dir") + File.separator + "testcase" + File.separator + "generated" + File.separator + TEST_CASE_FILE;
+    public static final String SRC_ISSUE_DIR = System.getProperty("user.dir") + File.separator + "testcase" + File.separator + "template" + File.separator + ISSUE_LOG_FILE;
+    public static final String RESULT_ISSUE_DIR = System.getProperty("user.dir") + File.separator + "testcase" + File.separator + "generated" + File.separator + ISSUE_LOG_FILE;
     // =====================================
 
     // === Appium Data ===
