@@ -5,7 +5,6 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import pages.base.BaseWebWeb1Page;
-import pages.web.PromoPage;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
