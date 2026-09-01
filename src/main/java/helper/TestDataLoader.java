@@ -19,7 +19,14 @@ public class TestDataLoader {
         }
     }
 
+    // [NOTES] if key did not exist or value null, return null. else return as text
     public static String getTestData(JsonNode node, String key) {
+        JsonNode value = node.path(key);
+
+        if (value.isMissingNode() || value.isNull()) {
+            return null;
+        }
+
         return node.path(key).asText();
     }
 
@@ -76,6 +83,15 @@ public class TestDataLoader {
         } catch (Exception e) {
             throw new RuntimeException("Failed to resolve resource: " + classpathPath, e);
         }
+    }
+
+    //[NOTES] if file empty or value null, return null
+    public static String getImgPathNullable(String fileName) {
+        if (fileName == null || fileName.isEmpty()) {
+            return null;
+        }
+
+        return getImgPathFromResource(fileName);
     }
 
     public static boolean isEnabled(JsonNode node) {
