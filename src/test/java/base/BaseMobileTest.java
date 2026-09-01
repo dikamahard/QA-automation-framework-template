@@ -4,6 +4,7 @@ import factory.AndroidDriverFactory;
 import helper.FileTransferUtils;
 import helper.TestLogger;
 import io.appium.java_client.android.AndroidDriver;
+import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
@@ -13,12 +14,26 @@ import org.testng.annotations.BeforeSuite;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-public abstract class BaseMobileTest extends BaseTest{
+public abstract class BaseMobileTest extends BaseTest implements ScreenshotDriverProvider{
     protected final Map<MobileDevice, AndroidDriver> driverAndroids = new EnumMap<>(MobileDevice.class);
 
+    // For setting up screenshot driver
+    @Override
+    public Map<String, TakesScreenshot> getScreenshotDrivers() {
+
+        Map<String, TakesScreenshot> drivers = new LinkedHashMap<>();
+        driverAndroids.forEach((device, driver) -> {
+            if (driver != null) {
+                drivers.put(device.name(), driver);
+            }
+        });
+
+        return drivers;
+    }
     @BeforeSuite
     public void copyQADocsTemplate() {
         System.out.println("[Before Suite] Copy QA Docs template");
