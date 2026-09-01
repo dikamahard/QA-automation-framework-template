@@ -2,7 +2,10 @@
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
 <suite name="AllSuite" parallel="false" thread-count="1">
     <listeners>
+        <!-- for bypass DB-->
         <listener class-name="helper.EarlyTLSInit"/>
+        <!-- for implementing retry test-->
+        <listener class-name="helper.RetryListener"/>
         <!--	<listener class-name="AppiumTest.mavenquickstart.TestUtils.Listeners"></listener>-->
     </listeners>
 
