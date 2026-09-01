@@ -5,12 +5,14 @@ import factory.WebDriverFactory;
 import helper.FileTransferUtils;
 import helper.TestLogger;
 import io.appium.java_client.android.AndroidDriver;
+import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeSuite;
 
 import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -19,10 +21,31 @@ import java.util.Map;
  * TODO:THIS IS AN EXPERIMENTAL SETUP FOR LAZY DRIVER INITIATION
  * TODO:NEED TO SEE HOW IT WORKS BEFORE IMPLEMENTING IT TO ALL TEST
  * */
-public class BaseHybridTest extends BaseTest{
+public class BaseHybridTest extends BaseTest implements ScreenshotDriverProvider{
     //protected AndroidDriver driverAndroid;
     protected final Map<MobileDevice, AndroidDriver> driverAndroids = new EnumMap<>(MobileDevice.class);
     protected WebDriver driverWeb; // selenium driver for backoffice
+
+
+    // For setting up screenshot driver
+    @Override
+    public Map<String, TakesScreenshot> getScreenshotDrivers() {
+        Map<String, TakesScreenshot> drivers = new LinkedHashMap<>();
+
+        // Web
+        if (driverWeb instanceof TakesScreenshot screenshotDriver) {
+            drivers.put("WEB", screenshotDriver);
+        }
+
+        // Android devices
+        driverAndroids.forEach((device, driver) -> {
+            if (driver != null) {
+                drivers.put(device.name(), driver);
+            }
+        });
+
+        return drivers;
+    }
 
     @BeforeSuite
     public void copyQADocsTemplate() {

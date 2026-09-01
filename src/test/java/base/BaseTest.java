@@ -1,6 +1,8 @@
 package base;
 
 import io.github.cdimascio.dotenv.Dotenv;
+import org.openqa.selenium.WebDriver;
+import org.testng.Reporter;
 
 import java.io.File;
 import java.nio.file.Paths;
@@ -56,10 +58,16 @@ public abstract class BaseTest {
     public static final String RESULT_TC_DIR = System.getProperty("user.dir") + File.separator + "testcase" + File.separator + "generated" + File.separator + TEST_CASE_FILE;
     public static final String SRC_ISSUE_DIR = System.getProperty("user.dir") + File.separator + "testcase" + File.separator + "template" + File.separator + ISSUE_LOG_FILE;
     public static final String RESULT_ISSUE_DIR = System.getProperty("user.dir") + File.separator + "testcase" + File.separator + "generated" + File.separator + ISSUE_LOG_FILE;
+    public static final String SCREENSHOT_DIR = System.getProperty("user.dir") + File.separator + "testcase" + File.separator + "generated" + File.separator + "screenshot";
+
+
     // =====================================
 
     // === Appium Data ===
     public static final String URL_APPIUM = dotenv.get("URL_APPIUM_SERVER");
 
-
+    protected void setScreenshotAttribute(String atr, String value) {
+        Reporter.getCurrentTestResult()
+                .setAttribute(atr, value);
+    }
 }

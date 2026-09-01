@@ -1,6 +1,7 @@
 package base;
 
 import helper.FileTransferUtils;
+import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
@@ -9,8 +10,24 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.BeforeSuite;
 
-public class BaseWebTest extends BaseTest{
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+public class BaseWebTest extends BaseTest implements ScreenshotDriverProvider{
     protected WebDriver driver; // selenium driver for backoffice
+
+    // For setting up screenshot driver
+    @Override
+    public Map<String, TakesScreenshot> getScreenshotDrivers() {
+
+        Map<String, TakesScreenshot> drivers = new LinkedHashMap<>();
+
+        if (driver != null) {
+            drivers.put("WEB", (TakesScreenshot) driver);
+        }
+
+        return drivers;
+    }
 
     @BeforeSuite
     public void copyTestCaseTemplateForTestResult() {

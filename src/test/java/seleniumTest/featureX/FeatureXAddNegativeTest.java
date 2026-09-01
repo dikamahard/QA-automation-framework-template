@@ -43,8 +43,11 @@ public class FeatureXAddNegativeTest extends BaseHybridTest {
         boolean cleanup = false;
         Exception causeOfFailure = null;
         String cell = loadTree("excelSheet/sample.json").get("TC1").asText();
+        // TODO: screenshot attribute when failed
+        setScreenshotAttribute("tcID", cell);
 
         try {
+
             // TODO: some code
 
             pass = true;

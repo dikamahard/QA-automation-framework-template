@@ -2,9 +2,9 @@ package pages.web.web2;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
-import pages.base.BaseWebPage;
+import pages.base.BaseWebWeb1Page;
 
-public class DashboardPage extends BaseWebPage {
+public class DashboardPage extends BaseWebWeb1Page {
     public DashboardPage(WebDriver driver) {
         super(driver);
     }
