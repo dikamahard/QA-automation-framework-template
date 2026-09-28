@@ -99,7 +99,7 @@ public class ExcelUtils {
                     issueRow.getCell(
                             1,
                             Row.MissingCellPolicy.CREATE_NULL_AS_BLANK
-                    ).setCellValue(causeOfFailure);
+                    ).setCellValue("["+cellResultRef+"] " + causeOfFailure);
 
                     // G - Status
                     issueRow.getCell(
