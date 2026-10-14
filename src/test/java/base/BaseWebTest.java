@@ -30,9 +30,10 @@ public class BaseWebTest extends BaseTest implements ScreenshotDriverProvider{
     }
 
     @BeforeSuite
-    public void copyTestCaseTemplateForTestResult() {
-        System.out.println("[Before Suite] Copy testcase template");
+    public void copyQADocsTemplate() {
+        System.out.println("[Before Suite] Copy QA Docs template");
         FileTransferUtils.copyFile(SRC_TC_DIR, RESULT_TC_DIR);
+        FileTransferUtils.copyFile(SRC_ISSUE_DIR, RESULT_ISSUE_DIR);
     }
 
     @BeforeClass(alwaysRun = true)

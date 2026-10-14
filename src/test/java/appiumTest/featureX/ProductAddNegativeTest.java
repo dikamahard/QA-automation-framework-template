@@ -38,7 +38,7 @@ public class ProductAddNegativeTest extends BaseHybridTest {
 
         boolean pass = false;
         boolean cleanup = false;
-        Exception causeOfFailure = null;
+        Throwable causeOfFailure = null;
         String cell = loadTree("excelSheet/sample.json").get("TC1").asText();
 
         try {
@@ -47,12 +47,15 @@ public class ProductAddNegativeTest extends BaseHybridTest {
             pass = true;
             cleanup = true;
 
+        } catch (AssertionError e) {
+            causeOfFailure = e;
+            throw e;
         } catch (Exception e) {
             causeOfFailure = e;
             TestLogger.printError("Error Message", e.getMessage());
             throw new RuntimeException(e);
         } finally {
-            ExcelUtils.writeResult(RESULT_TC_DIR, RESULT_ISSUE_DIR, "Sheet 1", "a1", pass ? 1 : 0, String.valueOf(causeOfFailure));
+            ExcelUtils.writeResult(RESULT_TC_DIR, RESULT_ISSUE_DIR, "Sheet 1", cell, pass ? 1 : 0, String.valueOf(causeOfFailure));
 
             // delete
             CleanupHelper.safeCleanup("Delete Sample", cleanup, ()-> {
