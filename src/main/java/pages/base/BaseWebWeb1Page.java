@@ -1,8 +1,11 @@
 package pages.base;
 
+import helper.TestLogger;
 import helper.web1.ActionWeb;
 import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
@@ -477,6 +480,31 @@ public class BaseWebWeb1Page {
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public void waitForValidationMessageJs(By field, long timeout) {
+
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(timeout));
+        JavascriptExecutor js = (JavascriptExecutor) driver;
+        WebElement element = driver.findElement(field);
+
+        wait.until(d -> {
+            String message = (String) js.executeScript("return arguments[0].validationMessage;", element);
+            return message != null && !message.isBlank();
+        });
+    }
+
+    public boolean verifValidationMessageJs(By field, String expectedText) {
+        JavascriptExecutor js = (JavascriptExecutor) driver;
+        WebElement element = driver.findElement(field);
+
+        String validationMsg =  (String) js.executeScript("return arguments[0].validationMessage;", element);
+
+        TestLogger.printLog("expectedText", expectedText);
+        TestLogger.printLog("actualText", validationMsg);
+        TestLogger.printLog("expectedText.equals(actualText)", expectedText.equals(validationMsg));
+
+        return expectedText.equals(validationMsg);
     }
 
 }
